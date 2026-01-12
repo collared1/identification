@@ -1,131 +1,126 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <title>ID Lookup</title>
 <style>
-body {
-  font-family: system-ui;
-  background: #0f172a;
-  color: #e5e7eb;
-  display: flex;
-  justify-content: center;
-  padding: 40px;
-}
-.container {
-  max-width: 700px;
-  width: 100%;
-  background: #020617;
-  padding: 30px;
-  border-radius: 12px;
-}
-h2 { margin-top: 30px; }
-input, button {
-  width: 100%;
-  padding: 10px;
-  margin-top: 8px;
-  border-radius: 6px;
-  border: none;
-}
-button {
-  background: #2563eb;
-  color: white;
-  cursor: pointer;
-}
-.card {
-  background: #020617;
-  border: 1px solid #1e293b;
-  padding: 15px;
-  border-radius: 8px;
-  margin-top: 15px;
-}
-.hidden { display: none; }
+  body { font-family: Arial, sans-serif; background:#0070c0; margin:0; padding:0;}
+  .container { max-width:600px; margin:50px auto; padding:20px; background:#cce6ff; border-radius:10px; box-shadow:0 4px 10px rgba(0,0,0,0.2);}
+  h1 { text-align:center; color:#003366; }
+  input, button { width:100%; padding:10px; margin-top:10px; border-radius:5px; border:1px solid #003366; font-size:14px; }
+  button { background:#003366; color:white; border:none; cursor:pointer; }
+  button:hover { background:#001f4d; }
+  .card { background:#e6f2ff; padding:10px; margin-top:10px; border-radius:5px; }
+  .hidden { display:none; }
 </style>
 </head>
-
 <body>
+
 <div class="container">
+  <h1>ID Lookup</h1>
 
-<h1>Identity Lookup</h1>
+  <!-- Public search -->
+  <input id="searchField" placeholder="Enter username or card ID">
+  <button onclick="publicSearch()">Search</button>
+  <div id="publicResult" class="card hidden"></div>
 
-<input id="publicQuery" placeholder="Username or Card ID">
-<button onclick="publicLookup()">Search</button>
+  <!-- Admin panel -->
+  <div id="adminPanel" class="hidden">
+    <h2>Admin Panel</h2>
+    <input id="adminQuery" placeholder="Search by username or card ID">
+    <input type="password" id="adminPass" placeholder="Enter admin password">
+    <button onclick="adminLookup()">Lookup</button>
+    <div id="adminResult" class="card hidden"></div>
 
-<div id="publicResult" class="card hidden"></div>
-
-<hr>
-
-<h2>Admin Panel</h2>
-
-<input id="adminPass" type="password" placeholder="Admin Passcode">
-<input id="adminQuery" placeholder="Username or Card ID">
-<button onclick="adminLookup()">Admin Lookup</button>
-
-<div id="adminResult" class="card hidden"></div>
-
-<h2>Add / Edit Entry</h2>
-
-<div id="form">
-  <input id="displayName" placeholder="Display Name">
-  <input id="username" placeholder="Username">
-  <input id="gender" placeholder="Gender">
-  <input id="nationality" placeholder="Nationality">
-  <input id="dob" placeholder="Date of Birth">
-  <input id="nativeLanguage" placeholder="Native Language">
-  <input id="expiry" placeholder="Expiry Date">
-  <input id="given" placeholder="Date Given">
-  <input id="cardId" placeholder="Card ID">
-  <button onclick="submitEntry()">Save</button>
-</div>
-
+    <h3>Add / Edit Entry</h3>
+    <input id="displayName" placeholder="Display Name">
+    <input id="username" placeholder="Username">
+    <input id="gender" placeholder="Gender">
+    <input id="nationality" placeholder="Nationality">
+    <input id="dob" placeholder="Date of Birth">
+    <input id="nativeLanguage" placeholder="Native Language">
+    <input id="expiry" placeholder="Expiry Date">
+    <input id="given" placeholder="Date Given">
+    <input id="cardId" placeholder="Card ID">
+    <input id="positions" placeholder="Positions (Public)">
+    <input id="notes" placeholder="Notes (Admin)">
+    <button onclick="saveEntry()">Save Entry</button>
+  </div>
 </div>
 
 <script>
-const API = "https://script.google.com/macros/s/AKfycbyKv1gsIoaN5bwdbtEv7JHzcg6fBKGCpWafhOXrRWgZW7kW-AuFoHfoW_h3l0DPnYFSkA/exec";
+let API = "";
 let editRow = null;
 
-async function call(payload) {
-  const r = await fetch(API, { method:"POST", body:JSON.stringify(payload) });
-  return r.json();
+fetch("config.json")
+  .then(r=>r.json())
+  .then(d=>{ API=d.API; })
+  .catch(err=>{ console.error("Failed to load API URL", err); });
+
+// Public search
+async function publicSearch(){
+  const query = searchField.value.trim();
+  if(!query){ publicResult.classList.add("hidden"); return; }
+
+  try{
+    const r = await fetch(API,{
+      method:"POST",
+      body:JSON.stringify({ action:"publicLookup", query }),
+      headers:{ "Content-Type":"application/json" }
+    });
+    const data = await r.json();
+
+    if(!data||data.error||data.length===0){
+      publicResult.textContent="No match found";
+      publicResult.classList.remove("hidden");
+      return;
+    }
+
+    publicResult.innerHTML = data.map(e=>`
+      <b>${e.displayName}</b><br>
+      Username: ${e.username}<br>
+      Gender: ${e.gender}<br>
+      Nationality: ${e.nationality}<br>
+      Native Language: ${e.nativeLanguage}<br>
+      Positions: ${e.positions}<br>
+      Card ID: ${e.cardId}
+    `).join("<hr>");
+    publicResult.classList.remove("hidden");
+  }catch(err){
+    console.error("API call failed", err);
+    alert("API call failed");
+  }
 }
 
-async function publicLookup() {
-  const d = await call({ action:"publicLookup", query:publicQuery.value });
-  if (d.error) return alert(d.error);
-  publicResult.innerHTML = `
-    <b>${d.displayName}</b><br>
-    Username: ${d.username}<br>
-    Gender: ${d.gender}<br>
-    Nationality: ${d.nationality}<br>
-    Native Language: ${d.nativeLanguage}<br>
-    Card ID: ${d.cardId}
-  `;
-  publicResult.classList.remove("hidden");
-}
+// Admin lookup
+async function adminLookup(){
+  const query = adminQuery.value.trim();
+  const pass = adminPass.value.trim();
+  if(!query || !pass){ alert("Enter query and password"); return; }
 
-async function adminLookup() {
-  const d = await call({
-    action:"adminLookup",
-    passcode: adminPass.value,
-    query: adminQuery.value
+  const r = await fetch(API,{
+    method:"POST",
+    body:JSON.stringify({ action:"adminLookup", passcode:pass, query }),
+    headers:{ "Content-Type":"application/json" }
   });
-  if (d.error) return alert(d.error);
+  const data = await r.json();
+  if(data.error){ alert(data.error); return; }
 
-  editRow = d.row;
-  const r = d.data;
-  [
-    displayName, username, gender, nationality,
-    dob, nativeLanguage, expiry, given, cardId
-  ].forEach((el,i)=>el.value=r[i]);
-
-  adminResult.innerText = "Loaded for editing";
+  editRow = data.row;
+  const row = data.data;
+  [displayName,username,gender,nationality,dob,nativeLanguage,expiry,given,cardId,positions,notes].forEach((el,i)=>el.value=row[i]);
+  adminResult.textContent="Record loaded for editing";
   adminResult.classList.remove("hidden");
 }
 
-async function submitEntry() {
+// Save / add
+async function saveEntry(){
+  const pass = adminPass.value.trim();
+  if(!pass){ alert("Enter password"); return; }
+
   const payload = {
-    action: editRow ? "update" : "add",
-    passcode: adminPass.value,
+    action: editRow?"update":"add",
+    passcode: pass,
     row: editRow,
     displayName: displayName.value,
     username: username.value,
@@ -135,14 +130,21 @@ async function submitEntry() {
     nativeLanguage: nativeLanguage.value,
     expiry: expiry.value,
     given: given.value,
-    cardId: cardId.value
+    cardId: cardId.value,
+    positions: positions.value,
+    notes: notes.value
   };
 
-  const d = await call(payload);
-  if (d.error) alert(d.error);
-  else alert("Saved");
+  const r = await fetch(API,{
+    method:"POST",
+    body:JSON.stringify(payload),
+    headers:{ "Content-Type":"application/json" }
+  });
+  const data = await r.json();
+  if(data.error) alert(data.error);
+  else { alert("Saved successfully"); editRow=null; }
 }
 </script>
+
 </body>
 </html>
-
