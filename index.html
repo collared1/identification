@@ -2,26 +2,24 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Mockgov Identity Lookup</title>
-
+<title>ID Lookup</title>
 <style>
 body {
   font-family: system-ui;
   background: #0f172a;
   color: #e5e7eb;
-  margin: 0;
-}
-
-.container {
-  max-width: 720px;
-  margin: auto;
+  display: flex;
+  justify-content: center;
   padding: 40px;
 }
-
-h1, h2 {
-  margin-top: 30px;
+.container {
+  max-width: 700px;
+  width: 100%;
+  background: #020617;
+  padding: 30px;
+  border-radius: 12px;
 }
-
+h2 { margin-top: 30px; }
 input, button {
   width: 100%;
   padding: 10px;
@@ -29,13 +27,11 @@ input, button {
   border-radius: 6px;
   border: none;
 }
-
 button {
   background: #2563eb;
   color: white;
   cursor: pointer;
 }
-
 .card {
   background: #020617;
   border: 1px solid #1e293b;
@@ -43,28 +39,11 @@ button {
   border-radius: 8px;
   margin-top: 15px;
 }
-
-.hidden {
-  display: none;
-}
-
-/* Invisible admin trigger */
-#adminTrigger {
-  position: fixed;
-  top: 0;
-  right: 0;
-  width: 48px;
-  height: 48px;
-  z-index: 9999;
-}
+.hidden { display: none; }
 </style>
 </head>
 
 <body>
-
-<!-- Invisible Click Zone -->
-<div id="adminTrigger"></div>
-
 <div class="container">
 
 <h1>Identity Lookup</h1>
@@ -74,59 +53,45 @@ button {
 
 <div id="publicResult" class="card hidden"></div>
 
-<!-- ADMIN PANEL (HIDDEN) -->
-<div id="adminPanel" class="hidden">
-
 <hr>
 
 <h2>Admin Panel</h2>
 
 <input id="adminPass" type="password" placeholder="Admin Passcode">
 <input id="adminQuery" placeholder="Username or Card ID">
-<button onclick="adminLookup()">Lookup</button>
+<button onclick="adminLookup()">Admin Lookup</button>
 
 <div id="adminResult" class="card hidden"></div>
 
 <h2>Add / Edit Entry</h2>
 
-<input id="displayName" placeholder="Display Name">
-<input id="username" placeholder="Username">
-<input id="gender" placeholder="Gender">
-<input id="nationality" placeholder="Nationality">
-<input id="dob" placeholder="Date of Birth">
-<input id="nativeLanguage" placeholder="Native Language">
-<input id="expiry" placeholder="Expiry Date">
-<input id="given" placeholder="Date Given">
-<input id="cardId" placeholder="Card ID">
-
-<button onclick="submitEntry()">Save Entry</button>
-
+<div id="form">
+  <input id="displayName" placeholder="Display Name">
+  <input id="username" placeholder="Username">
+  <input id="gender" placeholder="Gender">
+  <input id="nationality" placeholder="Nationality">
+  <input id="dob" placeholder="Date of Birth">
+  <input id="nativeLanguage" placeholder="Native Language">
+  <input id="expiry" placeholder="Expiry Date">
+  <input id="given" placeholder="Date Given">
+  <input id="cardId" placeholder="Card ID">
+  <button onclick="submitEntry()">Save</button>
 </div>
 
 </div>
 
 <script>
-const API = "https://script.google.com/macros/s/AKfycbzz4CLGSNARw65e_JDvH3yNtm72MZAechL26yr9GHfaDtOKnPDHRks8_PifewRcxGcFgw/exec";
+const API = "PASTE_APPS_SCRIPT_URL";
 let editRow = null;
 
-/* ---------- API ---------- */
 async function call(payload) {
-  const r = await fetch(API, {
-    method: "POST",
-    body: JSON.stringify(payload)
-  });
+  const r = await fetch(API, { method:"POST", body:JSON.stringify(payload) });
   return r.json();
 }
 
-/* ---------- PUBLIC ---------- */
 async function publicLookup() {
-  const d = await call({
-    action: "publicLookup",
-    query: publicQuery.value
-  });
-
+  const d = await call({ action:"publicLookup", query:publicQuery.value });
   if (d.error) return alert(d.error);
-
   publicResult.innerHTML = `
     <b>${d.displayName}</b><br>
     Username: ${d.username}<br>
@@ -138,30 +103,27 @@ async function publicLookup() {
   publicResult.classList.remove("hidden");
 }
 
-/* ---------- ADMIN ---------- */
 async function adminLookup() {
   const d = await call({
-    action: "adminLookup",
+    action:"adminLookup",
     passcode: adminPass.value,
     query: adminQuery.value
   });
-
   if (d.error) return alert(d.error);
 
   editRow = d.row;
   const r = d.data;
-
   [
     displayName, username, gender, nationality,
     dob, nativeLanguage, expiry, given, cardId
-  ].forEach((el, i) => el.value = r[i]);
+  ].forEach((el,i)=>el.value=r[i]);
 
-  adminResult.textContent = "Record loaded for editing.";
+  adminResult.innerText = "Loaded for editing";
   adminResult.classList.remove("hidden");
 }
 
 async function submitEntry() {
-  const d = await call({
+  const payload = {
     action: editRow ? "update" : "add",
     passcode: adminPass.value,
     row: editRow,
@@ -174,35 +136,13 @@ async function submitEntry() {
     expiry: expiry.value,
     given: given.value,
     cardId: cardId.value
-  });
+  };
 
+  const d = await call(payload);
   if (d.error) alert(d.error);
-  else alert("Saved successfully");
+  else alert("Saved");
 }
-
-/* ---------- SECRET CLICK UNLOCK ---------- */
-let clicks = 0;
-let timer = null;
-
-adminTrigger.addEventListener("click", () => {
-  clicks++;
-
-  if (!timer) {
-    timer = setTimeout(() => {
-      clicks = 0;
-      timer = null;
-    }, 3000);
-  }
-
-  if (clicks >= 5) {
-    adminPanel.classList.remove("hidden");
-    clicks = 0;
-    clearTimeout(timer);
-    timer = null;
-  }
-});
 </script>
-
 </body>
 </html>
 
