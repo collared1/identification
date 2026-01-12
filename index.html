@@ -20,7 +20,7 @@
   <h1>Mockgov International ID Lookup</h1>
 
   <!-- Search Field -->
-  <input id="searchField" placeholder="Enter username or card ID (or type admin password)">
+  <input id="searchField" placeholder="Enter username or card ID">
   <button onclick="publicSearch()">Search</button>
   <div id="publicResult" class="card hidden"></div>
 
@@ -49,7 +49,7 @@
 </div>
 
 <script>
-let API = "https://script.google.com/macros/s/AKfycbzPP7OX5tKJ_5lMiCeeXaPSbJuQWCtTVIw6TtTptQKexda7NJMuL-NRa9BvJD2M91E_/exec";
+let API = "";
 let editRow = null;
 
 // Load API URL from config.json
@@ -66,7 +66,7 @@ async function publicSearch(){
   try {
     const r = await fetch(API, { 
       method: "POST", 
-      body: JSON.stringify({ action: "publicLookup", query, partial:true }), 
+      body: JSON.stringify({ action: "publicLookup", query }), 
       headers: { "Content-Type": "application/json" }
     });
     const data = await r.json();
