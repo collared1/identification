@@ -1,145 +1,169 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
 <meta charset="UTF-8">
-<title>Mockgov International ID Lookup</title>
+<title>Identity Lookup</title>
+
 <style>
-  /* --- Basic Layout --- */
-  body { font-family: 'Segoe UI', sans-serif; background: #f0f4f8; margin:0; padding:0;}
-  .container { max-width: 800px; margin: 50px auto; padding: 30px; background: #fff; border-radius: 12px; box-shadow: 0 6px 20px rgba(0,0,0,0.1);}
-  h1 { text-align: center; color: #1e293b; }
-  input, button { width: 100%; padding: 12px; margin-top: 10px; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 16px; }
-  button { background: #2563eb; color: #fff; border: none; cursor: pointer; transition: 0.2s; }
-  button:hover { background: #1d4ed8; }
-  .card { background: #f1f5f9; padding: 15px; margin-top: 15px; border-radius: 8px; border: 1px solid #cbd5e1; }
-  .hidden { display: none; }
-  .admin-section hr { margin: 20px 0; border-color: #cbd5e1; }
-  .version { text-align:right; font-size:12px; color:#64748b; margin-top:10px; }
+body {
+  font-family: system-ui;
+  background: #0f172a;
+  color: #e5e7eb;
+  margin: 0;
+}
+
+.container {
+  max-width: 720px;
+  margin: auto;
+  padding: 40px;
+}
+
+h1, h2 {
+  margin-top: 30px;
+}
+
+input, button {
+  width: 100%;
+  padding: 10px;
+  margin-top: 8px;
+  border-radius: 6px;
+  border: none;
+}
+
+button {
+  background: #2563eb;
+  color: white;
+  cursor: pointer;
+}
+
+.card {
+  background: #020617;
+  border: 1px solid #1e293b;
+  padding: 15px;
+  border-radius: 8px;
+  margin-top: 15px;
+}
+
+.hidden {
+  display: none;
+}
+
+/* Invisible admin trigger */
+#adminTrigger {
+  position: fixed;
+  top: 0;
+  right: 0;
+  width: 48px;
+  height: 48px;
+  z-index: 9999;
+}
 </style>
 </head>
+
 <body>
 
+<!-- Invisible Click Zone -->
+<div id="adminTrigger"></div>
+
 <div class="container">
-  <h1>Mockgov International ID Lookup 1.1</h1>
 
-  <!-- Search Field -->
-  <input id="searchField" placeholder="Search username, display name, or card ID (Type password to unlock admin)">
-  <button onclick="publicSearch()">Search</button>
-  <div id="publicResult" class="card hidden"></div>
+<h1>Identity Lookup</h1>
 
-  <!-- Admin Panel -->
-  <div id="adminPanel" class="hidden admin-section">
-    <h2>Admin Panel</h2>
-    <input id="adminQuery" placeholder="Search by username or card ID">
-    <button onclick="adminLookup()">Lookup</button>
-    <div id="adminResult" class="card hidden"></div>
+<input id="publicQuery" placeholder="Username or Card ID">
+<button onclick="publicLookup()">Search</button>
 
-    <h3>Add / Edit Entry</h3>
-    <input id="displayName" placeholder="Display Name">
-    <input id="username" placeholder="Username">
-    <input id="gender" placeholder="Gender">
-    <input id="nationality" placeholder="Nationality">
-    <input id="dob" placeholder="Date of Birth">
-    <input id="nativeLanguage" placeholder="Native Language">
-    <input id="expiry" placeholder="Expiry Date">
-    <input id="given" placeholder="Date Given">
-    <input id="cardId" placeholder="Card ID">
-    <button onclick="saveEntry()">Save Entry</button>
-  </div>
+<div id="publicResult" class="card hidden"></div>
 
-  <div class="version">Version 1.0</div>
+<!-- ADMIN PANEL (HIDDEN) -->
+<div id="adminPanel" class="hidden">
+
+<hr>
+
+<h2>Admin Panel</h2>
+
+<input id="adminPass" type="password" placeholder="Admin Passcode">
+<input id="adminQuery" placeholder="Username or Card ID">
+<button onclick="adminLookup()">Lookup</button>
+
+<div id="adminResult" class="card hidden"></div>
+
+<h2>Add / Edit Entry</h2>
+
+<input id="displayName" placeholder="Display Name">
+<input id="username" placeholder="Username">
+<input id="gender" placeholder="Gender">
+<input id="nationality" placeholder="Nationality">
+<input id="dob" placeholder="Date of Birth">
+<input id="nativeLanguage" placeholder="Native Language">
+<input id="expiry" placeholder="Expiry Date">
+<input id="given" placeholder="Date Given">
+<input id="cardId" placeholder="Card ID">
+
+<button onclick="submitEntry()">Save Entry</button>
+
+</div>
+
 </div>
 
 <script>
-let API = "";
+const API = "PASTE_APPS_SCRIPT_URL_HERE";
 let editRow = null;
-const ADMIN_PASSWORD = "appsscript";
 
-// Load API URL from config.json
-fetch("config.json")
-  .then(r => r.json())
-  .then(d => { API = d.API; })
-  .catch(err => { console.error("Failed to load API URL", err); });
-
-// Debounce timer for search-as-you-type
-let debounceTimer = null;
-document.getElementById("searchField").addEventListener("input", () => {
-  clearTimeout(debounceTimer);
-  debounceTimer = setTimeout(() => {
-    const val = searchField.value.trim();
-    if(!val){ publicResult.classList.add("hidden"); return; }
-
-    // Unlock admin panel if password typed
-    if(val === ADMIN_PASSWORD){
-      adminPanel.classList.remove("hidden");
-      searchField.value = "";
-      publicResult.classList.add("hidden");
-      return;
-    }
-    publicSearch();
-  }, 250);
-});
-
-// Central API call
-async function callAPI(payload){
-  if(!API){ alert("API URL not loaded yet"); return; }
-  try {
-    const r = await fetch(API, { 
-      method: "POST", 
-      headers: { "Content-Type": "application/json" },  // IMPORTANT fix
-      body: JSON.stringify(payload)
-    });
-    return await r.json();
-  } catch(err){
-    console.error("API call failed", err);
-    alert("API call failed");
-    return { error: "API call failed" };
-  }
+/* ---------- API ---------- */
+async function call(payload) {
+  const r = await fetch(API, {
+    method: "POST",
+    body: JSON.stringify(payload)
+  });
+  return r.json();
 }
 
-// Public search
-async function publicSearch(){
-  const query = searchField.value.trim();
-  if(!query){ publicResult.classList.add("hidden"); return; }
+/* ---------- PUBLIC ---------- */
+async function publicLookup() {
+  const d = await call({
+    action: "publicLookup",
+    query: publicQuery.value
+  });
 
-  const data = await callAPI({ action: "publicLookup", query, partial:true });
-  if(!data || data.error || data.length===0){
-    publicResult.textContent = "No match found";
-    publicResult.classList.remove("hidden");
-    return;
-  }
+  if (d.error) return alert(d.error);
 
-  publicResult.innerHTML = data.map(e => `
-    <b>${e.displayName}</b><br>
-    Username: ${e.username}<br>
-    Gender: ${e.gender}<br>
-    Nationality: ${e.nationality}<br>
-    Native Language: ${e.nativeLanguage}<br>
-    Card ID: ${e.cardId}
-  `).join("<hr>");
+  publicResult.innerHTML = `
+    <b>${d.displayName}</b><br>
+    Username: ${d.username}<br>
+    Gender: ${d.gender}<br>
+    Nationality: ${d.nationality}<br>
+    Native Language: ${d.nativeLanguage}<br>
+    Card ID: ${d.cardId}
+  `;
   publicResult.classList.remove("hidden");
 }
 
-// Admin lookup
-async function adminLookup(){
-  const query = adminQuery.value.trim();
-  if(!query){ alert("Enter query"); return; }
+/* ---------- ADMIN ---------- */
+async function adminLookup() {
+  const d = await call({
+    action: "adminLookup",
+    passcode: adminPass.value,
+    query: adminQuery.value
+  });
 
-  const data = await callAPI({ action: "adminLookup", passcode: ADMIN_PASSWORD, query });
-  if(data.error){ alert(data.error); return; }
+  if (d.error) return alert(d.error);
 
-  editRow = data.row;
-  const r = data.data;
-  [displayName, username, gender, nationality, dob, nativeLanguage, expiry, given, cardId].forEach((el,i)=>el.value=r[i]);
-  adminResult.textContent = "Record loaded for editing";
+  editRow = d.row;
+  const r = d.data;
+
+  [
+    displayName, username, gender, nationality,
+    dob, nativeLanguage, expiry, given, cardId
+  ].forEach((el, i) => el.value = r[i]);
+
+  adminResult.textContent = "Record loaded for editing.";
   adminResult.classList.remove("hidden");
 }
 
-// Save or add entry
-async function saveEntry(){
-  const payload = {
+async function submitEntry() {
+  const d = await call({
     action: editRow ? "update" : "add",
-    passcode: ADMIN_PASSWORD,
+    passcode: adminPass.value,
     row: editRow,
     displayName: displayName.value,
     username: username.value,
@@ -150,12 +174,35 @@ async function saveEntry(){
     expiry: expiry.value,
     given: given.value,
     cardId: cardId.value
-  };
-  const data = await callAPI(payload);
-  if(data.error) alert(data.error);
-  else { alert("Saved successfully"); editRow = null; }
+  });
+
+  if (d.error) alert(d.error);
+  else alert("Saved successfully");
 }
+
+/* ---------- SECRET CLICK UNLOCK ---------- */
+let clicks = 0;
+let timer = null;
+
+adminTrigger.addEventListener("click", () => {
+  clicks++;
+
+  if (!timer) {
+    timer = setTimeout(() => {
+      clicks = 0;
+      timer = null;
+    }, 3000);
+  }
+
+  if (clicks >= 5) {
+    adminPanel.classList.remove("hidden");
+    clicks = 0;
+    clearTimeout(timer);
+    timer = null;
+  }
+});
 </script>
 
 </body>
 </html>
+
