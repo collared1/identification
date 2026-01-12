@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>hi</title>
+<title>Mockgov International ID Lookup</title>
 <style>
 body { font-family: system-ui; background: #0f172a; color: #e5e7eb; margin: 0; }
 .container { max-width: 720px; margin: auto; padding: 40px; }
@@ -16,7 +16,7 @@ button { background: #2563eb; color: white; cursor: pointer; }
 <body>
 
 <div class="container">
-<h1>hello</h1>
+<h1>Mockgov International ID Lookup</h1>
 
 <input id="publicQuery" placeholder="Type username, display name, or card ID" oninput="debouncedPublicLookup()">
 <button onclick="publicLookup()">Search</button>
@@ -43,11 +43,18 @@ button { background: #2563eb; color: white; cursor: pointer; }
 <input id="cardId" placeholder="Card ID">
 <button onclick="submitEntry()">Save Entry</button>
 </div>
+
 </div>
 
 <script>
-const API = "https://script.google.com/macros/s/AKfycbyoObnbMZCVnwov7HDTHOfEEg_rSq15xE-LUZY9NoX3eYAorGNzbGVWrcFoeLOnVdiz6w/exec";
+let API = ""; // Will be loaded from config.json
 let editRow = null;
+
+/* ---------- LOAD API FROM CONFIG ---------- */
+fetch("config.json")
+  .then(r => r.json())
+  .then(d => { API = d.API; })
+  .catch(err => { console.error("Failed to load API URL from config.json", err); });
 
 /* ---------- DEBOUNCE ---------- */
 let searchTimer = null;
@@ -61,6 +68,7 @@ function debouncedPublicLookup() {
 
 /* ---------- API CALL ---------- */
 async function call(payload) {
+  if(!API) { alert("API not loaded yet."); return; }
   try {
     const r = await fetch(API, {
       method: "POST",
@@ -69,6 +77,7 @@ async function call(payload) {
     return await r.json();
   } catch(err) {
     console.error("API call failed", err);
+    alert("API call failed");
     return {error:"API call failed"};
   }
 }
@@ -151,6 +160,7 @@ document.addEventListener('keydown', function(e){
   } else { currentIndex=0; }
 });
 </script>
+
 </body>
 </html>
 
