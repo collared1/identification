@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Mockgov International ID Lookup</title>
+<title>Identity Lookup</title>
 
 <style>
 body {
@@ -47,23 +47,10 @@ button {
 .hidden {
   display: none;
 }
-
-/* Invisible admin trigger */
-#adminTrigger {
-  position: fixed;
-  top: 0;
-  right: 0;
-  width: 48px;
-  height: 48px;
-  z-index: 9999;
-}
 </style>
 </head>
 
 <body>
-
-<!-- Invisible Click Zone -->
-<div id="adminTrigger"></div>
 
 <div class="container">
 
@@ -110,8 +97,7 @@ button {
 </div>
 
 <script>
-const API = "https://script.google.com/macros/s/AKfycbx3B3ToJiE8BONe9I5vW1Nw433uHHAa8oujKhbHj5Qx/dev
-";
+const API = "https://script.google.com/macros/s/AKfycbx3B3ToJiE8BONe9I5vW1Nw433uHHAa8oujKhbHj5Qx/dev";
 let editRow = null;
 
 /* ---------- DEBOUNCE FOR SEARCH-AS-YOU-TYPE ---------- */
@@ -137,12 +123,12 @@ async function call(payload) {
   return r.json();
 }
 
-/* ---------- PUBLIC ---------- */
+/* ---------- PUBLIC SEARCH ---------- */
 async function publicLookup() {
   const d = await call({
     action: "publicLookup",
     query: publicQuery.value,
-    partial: true // tell backend to allow partial matching
+    partial: true
   });
 
   if (!d || d.length === 0 || d.error) {
@@ -151,7 +137,6 @@ async function publicLookup() {
     return;
   }
 
-  // If multiple matches, display as a list
   publicResult.innerHTML = d.map(entry => `
     <b>${entry.displayName}</b><br>
     Username: ${entry.username}<br>
@@ -163,7 +148,7 @@ async function publicLookup() {
   publicResult.classList.remove("hidden");
 }
 
-/* ---------- ADMIN ---------- */
+/* ---------- ADMIN LOOKUP ---------- */
 async function adminLookup() {
   const d = await call({
     action: "adminLookup",
@@ -185,6 +170,7 @@ async function adminLookup() {
   adminResult.classList.remove("hidden");
 }
 
+/* ---------- ADD / EDIT ENTRY ---------- */
 async function submitEntry() {
   const d = await call({
     action: editRow ? "update" : "add",
@@ -205,25 +191,22 @@ async function submitEntry() {
   else alert("Saved successfully");
 }
 
-/* ---------- SECRET CLICK UNLOCK ---------- */
-let clicks = 0;
-let timer = null;
+/* ---------- ADMIN PANEL KEYBOARD SEQUENCE ---------- */
+const adminSequence = ['A','D','M','I','N'];
+let currentIndex = 0;
 
-adminTrigger.addEventListener("click", () => {
-  clicks++;
+document.addEventListener('keydown', function(e) {
+  // Ignore keypresses in input fields
+  if (['INPUT','TEXTAREA'].includes(document.activeElement.tagName)) return;
 
-  if (!timer) {
-    timer = setTimeout(() => {
-      clicks = 0;
-      timer = null;
-    }, 3000);
-  }
-
-  if (clicks >= 5) {
-    adminPanel.classList.remove("hidden");
-    clicks = 0;
-    clearTimeout(timer);
-    timer = null;
+  if(e.key.toUpperCase() === adminSequence[currentIndex]) {
+    currentIndex++;
+    if(currentIndex === adminSequence.length) {
+      document.getElementById('adminPanel').classList.remove('hidden');
+      currentIndex = 0;
+    }
+  } else {
+    currentIndex = 0; // reset on wrong key
   }
 });
 </script>
