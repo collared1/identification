@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>ID Lookup</title>
+<style>
+body {
+  font-family: system-ui;
+  background: #0f172a;
+  color: #e5e7eb;
+  display: flex;
+  justify-content: center;
+  padding: 40px;
+}
+.container {
+  max-width: 700px;
+  width: 100%;
+  background: #020617;
+  padding: 30px;
+  border-radius: 12px;
+}
+h2 { margin-top: 30px; }
+input, button {
+  width: 100%;
+  padding: 10px;
+  margin-top: 8px;
+  border-radius: 6px;
+  border: none;
+}
+button {
+  background: #2563eb;
+  color: white;
+  cursor: pointer;
+}
+.card {
+  background: #020617;
+  border: 1px solid #1e293b;
+  padding: 15px;
+  border-radius: 8px;
+  margin-top: 15px;
+}
+.hidden { display: none; }
+</style>
+</head>
+
+<body>
+<div class="container">
+
+<h1>Identity Lookup</h1>
+
+<input id="publicQuery" placeholder="Username or Card ID">
+<button onclick="publicLookup()">Search</button>
+
+<div id="publicResult" class="card hidden"></div>
+
+<hr>
+
+<h2>Admin Panel</h2>
+
+<input id="adminPass" type="password" placeholder="Admin Passcode">
+<input id="adminQuery" placeholder="Username or Card ID">
+<button onclick="adminLookup()">Admin Lookup</button>
+
+<div id="adminResult" class="card hidden"></div>
+
+<h2>Add / Edit Entry</h2>
+
+<div id="form">
+  <input id="displayName" placeholder="Display Name">
+  <input id="username" placeholder="Username">
+  <input id="gender" placeholder="Gender">
+  <input id="nationality" placeholder="Nationality">
+  <input id="dob" placeholder="Date of Birth">
+  <input id="nativeLanguage" placeholder="Native Language">
+  <input id="expiry" placeholder="Expiry Date">
+  <input id="given" placeholder="Date Given">
+  <input id="cardId" placeholder="Card ID">
+  <button onclick="submitEntry()">Save</button>
+</div>
+
+</div>
+
+<script>
+const API = "";
+let editRow = null;
+
+async function call(payload) {
+  const r = await fetch(API, { method:"POST", body:JSON.stringify(payload) });
+  return r.json();
+}
+
+async function publicLookup() {
+  const d = await call({ action:"publicLookup", query:publicQuery.value });
+  if (d.error) return alert(d.error);
+  publicResult.innerHTML = `
+    <b>${d.displayName}</b><br>
+    Username: ${d.username}<br>
+    Gender: ${d.gender}<br>
+    Nationality: ${d.nationality}<br>
+    Native Language: ${d.nativeLanguage}<br>
+    Card ID: ${d.cardId}
+  `;
+  publicResult.classList.remove("hidden");
+}
+
+async function adminLookup() {
+  const d = await call({
+    action:"adminLookup",
+    passcode: adminPass.value,
+    query: adminQuery.value
+  });
+  if (d.error) return alert(d.error);
+
+  editRow = d.row;
+  const r = d.data;
+  [
+    displayName, username, gender, nationality,
+    dob, nativeLanguage, expiry, given, cardId
+  ].forEach((el,i)=>el.value=r[i]);
+
+  adminResult.innerText = "Loaded for editing";
+  adminResult.classList.remove("hidden");
+}
+
+async function submitEntry() {
+  const payload = {
+    action: editRow ? "update" : "add",
+    passcode: adminPass.value,
+    row: editRow,
+    displayName: displayName.value,
+    username: username.value,
+    gender: gender.value,
+    nationality: nationality.value,
+    dob: dob.value,
+    nativeLanguage: nativeLanguage.value,
+    expiry: expiry.value,
+    given: given.value,
+    cardId: cardId.value
+  };
+
+  const d = await call(payload);
+  if (d.error) alert(d.error);
+  else alert("Saved");
+}
+</script>
+</body>
+</html>
+
