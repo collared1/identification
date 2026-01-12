@@ -4,22 +4,25 @@
 <meta charset="UTF-8">
 <title>Mockgov International ID Lookup</title>
 <style>
-  body { font-family: 'Segoe UI', sans-serif; background: #f4f6f8; margin: 0; }
-  .container { max-width: 800px; margin: 50px auto; padding: 30px; background: white; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.1);}
+  /* --- Basic Layout --- */
+  body { font-family: 'Segoe UI', sans-serif; background: #f0f4f8; margin:0; padding:0;}
+  .container { max-width: 800px; margin: 50px auto; padding: 30px; background: #fff; border-radius: 12px; box-shadow: 0 6px 20px rgba(0,0,0,0.1);}
   h1 { text-align: center; color: #1e293b; }
-  input, button { width: 100%; padding: 10px; margin-top: 10px; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 16px; }
-  button { background: #2563eb; color: white; border: none; cursor: pointer; transition: background 0.2s; }
-  button:hover { background: #1e40af; }
+  input, button { width: 100%; padding: 12px; margin-top: 10px; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 16px; }
+  button { background: #2563eb; color: #fff; border: none; cursor: pointer; transition: 0.2s; }
+  button:hover { background: #1d4ed8; }
   .card { background: #f1f5f9; padding: 15px; margin-top: 15px; border-radius: 8px; border: 1px solid #cbd5e1; }
   .hidden { display: none; }
   .admin-section hr { margin: 20px 0; border-color: #cbd5e1; }
+  .version { text-align:right; font-size:12px; color:#64748b; margin-top:10px; }
 </style>
 </head>
 <body>
 
 <div class="container">
-  <h1>Mockgov International ID Lookup</h1>
+  <h1>Mockgov International ID Lookup 1.0</h1>
 
+  <!-- Search Field -->
   <input id="searchField" placeholder="Search username, display name, or card ID (Type password to unlock admin)">
   <button onclick="publicSearch()">Search</button>
   <div id="publicResult" class="card hidden"></div>
@@ -43,6 +46,8 @@
     <input id="cardId" placeholder="Card ID">
     <button onclick="saveEntry()">Save Entry</button>
   </div>
+
+  <div class="version">Version 1.0</div>
 </div>
 
 <script>
@@ -56,15 +61,15 @@ fetch("config.json")
   .then(d => { API = d.API; })
   .catch(err => { console.error("Failed to load API URL", err); });
 
-// Public search as you type
+// Debounce timer for search-as-you-type
 let debounceTimer = null;
 document.getElementById("searchField").addEventListener("input", () => {
   clearTimeout(debounceTimer);
   debounceTimer = setTimeout(() => {
     const val = searchField.value.trim();
-    if(!val) { publicResult.classList.add("hidden"); return; }
+    if(!val){ publicResult.classList.add("hidden"); return; }
 
-    // If password entered, show admin panel
+    // Unlock admin panel if password typed
     if(val === ADMIN_PASSWORD){
       adminPanel.classList.remove("hidden");
       searchField.value = "";
@@ -75,10 +80,15 @@ document.getElementById("searchField").addEventListener("input", () => {
   }, 250);
 });
 
+// Central API call
 async function callAPI(payload){
   if(!API){ alert("API URL not loaded yet"); return; }
   try {
-    const r = await fetch(API, { method: "POST", body: JSON.stringify(payload) });
+    const r = await fetch(API, { 
+      method: "POST", 
+      headers: { "Content-Type": "application/json" },  // IMPORTANT fix
+      body: JSON.stringify(payload)
+    });
     return await r.json();
   } catch(err){
     console.error("API call failed", err);
@@ -87,11 +97,12 @@ async function callAPI(payload){
   }
 }
 
+// Public search
 async function publicSearch(){
   const query = searchField.value.trim();
   if(!query){ publicResult.classList.add("hidden"); return; }
 
-  const data = await callAPI({ action: "publicLookup", query, partial: true });
+  const data = await callAPI({ action: "publicLookup", query, partial:true });
   if(!data || data.error || data.length===0){
     publicResult.textContent = "No match found";
     publicResult.classList.remove("hidden");
@@ -109,6 +120,7 @@ async function publicSearch(){
   publicResult.classList.remove("hidden");
 }
 
+// Admin lookup
 async function adminLookup(){
   const query = adminQuery.value.trim();
   if(!query){ alert("Enter query"); return; }
@@ -123,6 +135,7 @@ async function adminLookup(){
   adminResult.classList.remove("hidden");
 }
 
+// Save or add entry
 async function saveEntry(){
   const payload = {
     action: editRow ? "update" : "add",
@@ -146,4 +159,3 @@ async function saveEntry(){
 
 </body>
 </html>
-
